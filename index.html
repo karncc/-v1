@@ -10,9 +10,9 @@
         body { font-family: 'Sarabun', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen py-10 px-4">
+<body class="bg-slate-100 min-h-screen py-10 px-4 flex flex-col justify-between">
 
-    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="max-w-2xl mx-auto w-full bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div class="bg-blue-800 p-6 text-white text-center">
             <h1 class="text-2xl font-bold">ระบบประเมินความรับผิดทางละเมิด</h1>
             <p class="text-blue-200 mt-2 text-sm">สำหรับคณะกรรมการและผู้ควบคุมงาน (งานรัฐวิสาหกิจ/ราชการ)</p>
@@ -126,30 +126,29 @@
         </div>
     </div>
 
+    <!-- Footnote -->
+    <footer class="w-full text-center text-xs text-gray-400 mt-auto pb-4">
+        จัดทำโดย วัชรากร เนียมลาภ ฝ่ายบำรุงรักษาโยธา การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย
+    </footer>
+
     <script>
         // ฟังก์ชันช่วยจัด Format ตัวเลขให้มีลูกน้ำ (,)
         function formatCurrencyInput(input) {
-            // ดึงค่าปัจจุบันที่ยังไม่มีลูกน้ำและตัวอักษรแปลกปลอม
             let val = input.value.replace(/,/g, '').replace(/[^0-9.]/g, '');
             if (!val) {
                 input.value = '';
-                calculatePercentPreview(); // สั่งให้อัปเดต Preview ด้วยเมื่อลบค่าออก
+                calculatePercentPreview();
                 return;
             }
             
-            // ป้องกันการพิมพ์จุด (.) เกิน 1 ตัว
             const parts = val.split('.');
             if (parts.length > 2) {
                 parts.pop();
             }
             
-            // ใส่ลูกน้ำในส่วนของจำนวนเต็ม
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            
-            // กำหนดค่ากลับลงในช่องกรอก
             input.value = parts.join('.');
             
-            // อัปเดตการคำนวณ % เผื่อว่าผู้ใช้กำลังแก้ไขช่องงบประมาณอยู่
             calculatePercentPreview();
         }
 
@@ -159,7 +158,7 @@
             return parseFloat(val.replace(/,/g, ''));
         }
 
-        // สลับโหมดการกรอกความเสียหาย (เงิน <-> เปอร์เซ็นต์)
+        // สลับโหมดการกรอกความเสียหาย
         function toggleDamageMode() {
             const mode = document.querySelector('input[name="damageMode"]:checked').value;
             if (mode === 'manual') {
@@ -198,7 +197,6 @@
             
             let damage = 0;
 
-            // ตรวจสอบที่มาของตัวเลขความเสียหาย
             if (mode === 'manual') {
                 damage = getRawNumber('damage');
             } else {
@@ -218,7 +216,6 @@
             const memberCount = parseInt(document.getElementById('memberCount').value);
             const isChair = document.querySelector('input[name="role"]:checked').value === 'chair';
 
-            // ตรวจสอบความถูกต้องของข้อมูล
             if (isNaN(damage) || damage <= 0) {
                 alert('กรุณาระบุความเสียหายที่เกิดขึ้นจริงให้ถูกต้อง');
                 return;
@@ -228,23 +225,17 @@
                 return;
             }
 
-            // คำนวณความรับผิดรวมของชุดนี้
             const groupLiabilityTotal = damage * groupShare;
-
             let yourShare = 0;
 
-            // กรณีมีคนเดียว
             if (memberCount === 1) {
                 yourShare = groupLiabilityTotal;
             } else {
-                // กำหนดน้ำหนัก (ประธาน/หัวหน้า = 1.5 ส่วน, กรรมการ/ผู้ร่วม = 1.0 ส่วน)
                 const chairWeight = 1.5;
                 const memberWeight = 1.0;
                 
-                // คำนวณส่วนแบ่งทั้งหมด (หัวหน้า 1 คน + ผู้ร่วมงานที่เหลือ)
                 const totalWeights = chairWeight + (memberWeight * (memberCount - 1));
 
-                // คำนวณความรับผิด
                 if (isChair) {
                     yourShare = (chairWeight / totalWeights) * groupLiabilityTotal;
                 } else {
@@ -252,7 +243,6 @@
                 }
             }
 
-            // แสดงผลลัพธ์
             const formatter = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
             
             document.getElementById('resTotalDamage').textContent = formatter.format(damage);
