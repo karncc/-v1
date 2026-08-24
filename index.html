@@ -24,14 +24,39 @@
                 <!-- วงเงินงบประมาณ -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">วงเงินงบประมาณจัดซื้อจัดจ้าง (บาท)</label>
-                    <input type="number" id="budget" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="เช่น 5000000">
+                    <input type="text" id="budget" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="เช่น 5,000,000" oninput="formatCurrencyInput(this)">
                 </div>
 
                 <!-- จำนวนเงินความเสียหาย -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงินความเสียหายที่เกิดขึ้นจริง (บาท)</label>
-                    <input type="number" id="damage" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="เช่น 1000000">
-                    <p class="text-xs text-gray-500 mt-1">*คิดคำนวณสัดส่วนจากยอดความเสียหาย ไม่ใช่วงเงินงบประมาณ</p>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-100">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">ความเสียหายที่เกิดขึ้นจริง</label>
+                    
+                    <!-- ตัวเลือกรูปแบบการกรอก -->
+                    <div class="flex items-center space-x-6 mb-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="damageMode" value="manual" checked class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300" onchange="toggleDamageMode()">
+                            <span class="ml-2 text-sm text-gray-700">ระบุเป็นจำนวนเงินเอง</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="damageMode" value="percent" class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300" onchange="toggleDamageMode()">
+                            <span class="ml-2 text-sm text-gray-700">คิดเป็น % ของงบประมาณ</span>
+                        </label>
+                    </div>
+
+                    <!-- ช่องกรอกแบบ จำนวนเงิน (Manual) -->
+                    <div id="manualDamageDiv">
+                        <input type="text" id="damage" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="เช่น 1,000,000" oninput="formatCurrencyInput(this)">
+                    </div>
+
+                    <!-- ช่องกรอกแบบ เปอร์เซ็นต์ (Percent) -->
+                    <div id="percentDamageDiv" class="hidden">
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="damagePercent" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="เช่น 10 (พิมพ์เฉพาะตัวเลข)" oninput="calculatePercentPreview()">
+                            <span class="text-gray-700 font-medium w-8">%</span>
+                        </div>
+                        <!-- แสดงยอดเงินที่คำนวณจากเปอร์เซ็นต์แบบเรียลไทม์ -->
+                        <p id="damagePreview" class="text-sm text-red-600 mt-2 font-medium hidden">คิดเป็นเงิน: 0.00 บาท</p>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -57,18 +82,18 @@
                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <span class="block text-sm font-medium text-gray-700 mb-2">บทบาทของคุณในหน้าที่นี้</span>
                     <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
-                        <label class="flex items-center">
+                        <label class="flex items-center cursor-pointer">
                             <input type="radio" name="role" value="chair" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
                             <span class="ml-2 text-gray-700">ประธาน / หัวหน้าผู้ควบคุมงาน</span>
                         </label>
-                        <label class="flex items-center">
+                        <label class="flex items-center cursor-pointer">
                             <input type="radio" name="role" value="member" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                            <span class="ml-2 text-gray-700">กรรมการ / ผู้ควบคุมงานร่วม</span>
+                            <span class="ml-2 text-gray-700">กรรมการ / ผู้ร่วมควบคุมงาน</span>
                         </label>
                     </div>
                 </div>
 
-                <button type="button" onclick="calculateLiability()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
+                <button type="button" onclick="calculateLiability()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-md">
                     คำนวณยอดเงินที่ต้องรับผิด
                 </button>
             </form>
@@ -95,23 +120,107 @@
                 <div class="mt-6 text-xs text-gray-500 bg-white p-3 rounded border border-gray-200">
                     <strong>หมายเหตุ:</strong> <br>
                     - หากมีผู้รับผิดชอบเพียง 1 คน ผู้นั้นจะรับผิดชอบ 100% ของสัดส่วนความรับผิดในกลุ่มนั้น <br>
-                    - เปอร์เซ็นต์ความรับผิดข้างต้นเป็นเพียงการจำลอง ในสถานการณ์จริง สัดส่วนจะถูกพิจารณาจากระดับความประมาทเลินเล่อเป็นรายบุคคลโดยคณะกรรมการสอบข้อเท็จจริงความรับผิดทางละเมิด
+                    - เปอร์เซ็นต์ความรับผิดข้างต้นเป็นเพียงการจำลองตามหลักเกณฑ์ทั่วไป ในสถานการณ์จริง สัดส่วนจะถูกพิจารณาโดยคณะกรรมการสอบข้อเท็จจริงฯ
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ฟังก์ชันช่วยจัด Format ตัวเลขให้มีลูกน้ำ (,)
+        function formatCurrencyInput(input) {
+            // ดึงค่าปัจจุบันที่ยังไม่มีลูกน้ำและตัวอักษรแปลกปลอม
+            let val = input.value.replace(/,/g, '').replace(/[^0-9.]/g, '');
+            if (!val) {
+                input.value = '';
+                calculatePercentPreview(); // สั่งให้อัปเดต Preview ด้วยเมื่อลบค่าออก
+                return;
+            }
+            
+            // ป้องกันการพิมพ์จุด (.) เกิน 1 ตัว
+            const parts = val.split('.');
+            if (parts.length > 2) {
+                parts.pop();
+            }
+            
+            // ใส่ลูกน้ำในส่วนของจำนวนเต็ม
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            
+            // กำหนดค่ากลับลงในช่องกรอก
+            input.value = parts.join('.');
+            
+            // อัปเดตการคำนวณ % เผื่อว่าผู้ใช้กำลังแก้ไขช่องงบประมาณอยู่
+            calculatePercentPreview();
+        }
+
+        // ฟังก์ชันดึงค่าตัวเลขล้วน (ตัดลูกน้ำออกก่อนนำไปคำนวณ)
+        function getRawNumber(elementId) {
+            let val = document.getElementById(elementId).value;
+            return parseFloat(val.replace(/,/g, ''));
+        }
+
+        // สลับโหมดการกรอกความเสียหาย (เงิน <-> เปอร์เซ็นต์)
+        function toggleDamageMode() {
+            const mode = document.querySelector('input[name="damageMode"]:checked').value;
+            if (mode === 'manual') {
+                document.getElementById('manualDamageDiv').classList.remove('hidden');
+                document.getElementById('percentDamageDiv').classList.add('hidden');
+            } else {
+                document.getElementById('manualDamageDiv').classList.add('hidden');
+                document.getElementById('percentDamageDiv').classList.remove('hidden');
+                calculatePercentPreview();
+            }
+        }
+
+        // คำนวณและแสดงยอดเงินจริง หากเลือกกรอกเป็น %
+        function calculatePercentPreview() {
+            const mode = document.querySelector('input[name="damageMode"]:checked').value;
+            if (mode !== 'percent') return;
+
+            const budget = getRawNumber('budget');
+            const percent = parseFloat(document.getElementById('damagePercent').value);
+            const previewEl = document.getElementById('damagePreview');
+
+            if (!isNaN(budget) && !isNaN(percent)) {
+                const calculated = budget * (percent / 100);
+                const formatter = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
+                previewEl.textContent = 'คิดเป็นเงิน: ' + formatter.format(calculated);
+                previewEl.classList.remove('hidden');
+            } else {
+                previewEl.classList.add('hidden');
+            }
+        }
+
+        // ฟังก์ชันคำนวณความรับผิด
         function calculateLiability() {
-            // ดึงค่าจากฟอร์ม
-            const damage = parseFloat(document.getElementById('damage').value);
+            const budget = getRawNumber('budget');
+            const mode = document.querySelector('input[name="damageMode"]:checked').value;
+            
+            let damage = 0;
+
+            // ตรวจสอบที่มาของตัวเลขความเสียหาย
+            if (mode === 'manual') {
+                damage = getRawNumber('damage');
+            } else {
+                if (isNaN(budget) || budget <= 0) {
+                    alert('กรุณากรอก "วงเงินงบประมาณ" ก่อนคำนวณความเสียหายแบบเปอร์เซ็นต์');
+                    return;
+                }
+                const percent = parseFloat(document.getElementById('damagePercent').value);
+                if (isNaN(percent) || percent <= 0) {
+                    alert('กรุณาระบุตัวเลขเปอร์เซ็นต์ให้ถูกต้อง');
+                    return;
+                }
+                damage = budget * (percent / 100);
+            }
+
             const groupShare = parseFloat(document.getElementById('committeeType').value);
             const memberCount = parseInt(document.getElementById('memberCount').value);
             const isChair = document.querySelector('input[name="role"]:checked').value === 'chair';
 
             // ตรวจสอบความถูกต้องของข้อมูล
             if (isNaN(damage) || damage <= 0) {
-                alert('กรุณากรอกจำนวนเงินความเสียหายให้ถูกต้อง');
+                alert('กรุณาระบุความเสียหายที่เกิดขึ้นจริงให้ถูกต้อง');
                 return;
             }
             if (isNaN(memberCount) || memberCount < 1) {
@@ -119,12 +228,12 @@
                 return;
             }
 
-            // คำนวณความรับผิดรวมของชุดนี้ (เช่น 30% ของความเสียหาย)
+            // คำนวณความรับผิดรวมของชุดนี้
             const groupLiabilityTotal = damage * groupShare;
 
             let yourShare = 0;
 
-            // กรณีมีคนเดียว รับผิดชอบเต็ม 100% ของกลุ่มนั้นทันที ไม่ว่าจะเป็นหัวหน้าหรือไม่
+            // กรณีมีคนเดียว
             if (memberCount === 1) {
                 yourShare = groupLiabilityTotal;
             } else {
@@ -135,7 +244,7 @@
                 // คำนวณส่วนแบ่งทั้งหมด (หัวหน้า 1 คน + ผู้ร่วมงานที่เหลือ)
                 const totalWeights = chairWeight + (memberWeight * (memberCount - 1));
 
-                // คำนวณความรับผิดของผู้ใช้งาน
+                // คำนวณความรับผิด
                 if (isChair) {
                     yourShare = (chairWeight / totalWeights) * groupLiabilityTotal;
                 } else {
@@ -143,7 +252,7 @@
                 }
             }
 
-            // แสดงผล
+            // แสดงผลลัพธ์
             const formatter = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
             
             document.getElementById('resTotalDamage').textContent = formatter.format(damage);
