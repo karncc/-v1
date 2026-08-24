@@ -51,7 +51,7 @@
                     <!-- ช่องกรอกแบบ เปอร์เซ็นต์ (Percent) -->
                     <div id="percentDamageDiv" class="hidden">
                         <div class="flex items-center space-x-2">
-                            <input type="number" id="damagePercent" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="เช่น 10 (พิมพ์เฉพาะตัวเลข)" oninput="calculatePercentPreview()">
+                            <input type="number" id="damagePercent" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="เช่น 10 (พิมพ์เฉพาะตัวเลข 0-100)" oninput="validateAndCalculatePercent()">
                             <span class="text-gray-700 font-medium w-8">%</span>
                         </div>
                         <p id="damagePreview" class="text-sm text-red-600 mt-2 font-medium hidden">คิดเป็นเงิน: 0.00 บาท</p>
@@ -170,12 +170,14 @@
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             input.value = parts.join('.');
             
-            calculatePercentPreview();
+            // ตรวจสอบและอัปเดต Preview เสมอเผื่อเปลี่ยนวงเงินงบประมาณ
+            validateAndCalculatePercent(); 
         }
 
         // ฟังก์ชันดึงค่าตัวเลขล้วน (ตัดลูกน้ำออกก่อนนำไปคำนวณ)
         function getRawNumber(elementId) {
             let val = document.getElementById(elementId).value;
+            if (!val) return NaN;
             return parseFloat(val.replace(/,/g, ''));
         }
 
@@ -188,18 +190,30 @@
             } else {
                 document.getElementById('manualDamageDiv').classList.add('hidden');
                 document.getElementById('percentDamageDiv').classList.remove('hidden');
-                calculatePercentPreview();
+                validateAndCalculatePercent();
             }
         }
 
-        // คำนวณและแสดงยอดเงินจริง หากเลือกกรอกเป็น %
-        function calculatePercentPreview() {
+        // ตรวจสอบเปอร์เซ็นต์และคำนวณ Preview
+        function validateAndCalculatePercent() {
             const mode = document.querySelector('input[name="damageMode"]:checked').value;
             if (mode !== 'percent') return;
 
             const budget = getRawNumber('budget');
-            const percent = parseFloat(document.getElementById('damagePercent').value);
+            const percentInput = document.getElementById('damagePercent');
             const previewEl = document.getElementById('damagePreview');
+            
+            let percent = parseFloat(percentInput.value);
+
+            // ป้องกันกรอกเกิน 100%
+            if (!isNaN(percent) && percent > 100) {
+                alert('ไม่สามารถระบุความเสียหายเกิน 100% ของงบประมาณได้');
+                percentInput.value = 100;
+                percent = 100;
+            } else if (!isNaN(percent) && percent < 0) {
+                percentInput.value = 0;
+                percent = 0;
+            }
 
             if (!isNaN(budget) && !isNaN(percent)) {
                 const calculated = budget * (percent / 100);
@@ -218,16 +232,28 @@
             
             let damage = 0;
 
+            if (isNaN(budget) || budget <= 0) {
+                alert('กรุณากรอก "วงเงินงบประมาณ" ให้ถูกต้องก่อนทำการคำนวณ');
+                return;
+            }
+
             if (mode === 'manual') {
                 damage = getRawNumber('damage');
-            } else {
-                if (isNaN(budget) || budget <= 0) {
-                    alert('กรุณากรอก "วงเงินงบประมาณ" ก่อนคำนวณความเสียหายแบบเปอร์เซ็นต์');
+                
+                // ตรวจสอบว่ากรอกเงินความเสียหายเกินงบประมาณหรือไม่
+                if (damage > budget) {
+                    alert('ยอดความเสียหายระบุไว้เกินกว่าวงเงินงบประมาณ กรุณาตรวจสอบอีกครั้ง');
+                    document.getElementById('damage').focus();
                     return;
                 }
+            } else {
                 const percent = parseFloat(document.getElementById('damagePercent').value);
                 if (isNaN(percent) || percent <= 0) {
                     alert('กรุณาระบุตัวเลขเปอร์เซ็นต์ให้ถูกต้อง');
+                    return;
+                }
+                if (percent > 100) {
+                    alert('ไม่สามารถระบุความเสียหายเกิน 100% ของงบประมาณได้');
                     return;
                 }
                 damage = budget * (percent / 100);
