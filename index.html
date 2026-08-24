@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณความรับผิดทางละเมิดของเจ้าหน้าที่</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-10 px-4">
+
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-blue-800 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold">ระบบประเมินความรับผิดทางละเมิด</h1>
+            <p class="text-blue-200 mt-2 text-sm">สำหรับคณะกรรมการและผู้ควบคุมงาน (งานรัฐวิสาหกิจ/ราชการ)</p>
+        </div>
+
+        <div class="p-8">
+            <form id="liabilityForm" class="space-y-6">
+                
+                <!-- วงเงินงบประมาณ -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">วงเงินงบประมาณจัดซื้อจัดจ้าง (บาท)</label>
+                    <input type="number" id="budget" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="เช่น 5000000">
+                </div>
+
+                <!-- จำนวนเงินความเสียหาย -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงินความเสียหายที่เกิดขึ้นจริง (บาท)</label>
+                    <input type="number" id="damage" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="เช่น 1000000">
+                    <p class="text-xs text-gray-500 mt-1">*คิดคำนวณสัดส่วนจากยอดความเสียหาย ไม่ใช่วงเงินงบประมาณ</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ประเภทความรับผิดชอบ -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทหน้าที่รับผิดชอบ</label>
+                        <select id="committeeType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                            <option value="0.30">คณะกรรมการกำหนดราคากลาง (รับผิด 30%)</option>
+                            <option value="0.20">คณะกรรมการซื้อหรือจ้าง (รับผิด 20%)</option>
+                            <option value="0.50">คณะกรรมการตรวจรับพัสดุ (รับผิด 50%)</option>
+                            <option value="0.30">ผู้ควบคุมงาน (รับผิด 30%)</option>
+                        </select>
+                    </div>
+
+                    <!-- จำนวนบุคคล -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนบุคคลในชุดนี้ทั้งหมด</label>
+                        <input type="number" id="memberCount" min="1" value="3" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- สถานะประธาน/หัวหน้า -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <span class="block text-sm font-medium text-gray-700 mb-2">บทบาทของคุณในหน้าที่นี้</span>
+                    <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                        <label class="flex items-center">
+                            <input type="radio" name="role" value="chair" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <span class="ml-2 text-gray-700">ประธาน / หัวหน้าผู้ควบคุมงาน</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="role" value="member" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <span class="ml-2 text-gray-700">กรรมการ / ผู้ควบคุมงานร่วม</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="button" onclick="calculateLiability()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
+                    คำนวณยอดเงินที่ต้องรับผิด
+                </button>
+            </form>
+
+            <!-- ส่วนแสดงผล -->
+            <div id="resultBox" class="hidden mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-blue-800 border-b border-blue-200 pb-2 mb-4">ผลการประเมินเบื้องต้น</h3>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">ความเสียหายรวม:</span>
+                        <span id="resTotalDamage" class="font-semibold">0.00 บาท</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">ความรับผิดของหน้าที่นี้ (รวมทั้งชุด):</span>
+                        <span id="resCommitteeTotal" class="font-semibold text-orange-600">0.00 บาท</span>
+                    </div>
+                    <div class="flex justify-between items-end pt-3 border-t border-blue-200">
+                        <span class="text-gray-800 font-medium">ยอดเงินที่คุณต้องรับผิดชอบ:</span>
+                        <span id="resYourLiability" class="text-2xl font-bold text-red-600">0.00 บาท</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-xs text-gray-500 bg-white p-3 rounded border border-gray-200">
+                    <strong>หมายเหตุ:</strong> <br>
+                    - หากมีผู้รับผิดชอบเพียง 1 คน ผู้นั้นจะรับผิดชอบ 100% ของสัดส่วนความรับผิดในกลุ่มนั้น <br>
+                    - เปอร์เซ็นต์ความรับผิดข้างต้นเป็นเพียงการจำลอง ในสถานการณ์จริง สัดส่วนจะถูกพิจารณาจากระดับความประมาทเลินเล่อเป็นรายบุคคลโดยคณะกรรมการสอบข้อเท็จจริงความรับผิดทางละเมิด
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculateLiability() {
+            // ดึงค่าจากฟอร์ม
+            const damage = parseFloat(document.getElementById('damage').value);
+            const groupShare = parseFloat(document.getElementById('committeeType').value);
+            const memberCount = parseInt(document.getElementById('memberCount').value);
+            const isChair = document.querySelector('input[name="role"]:checked').value === 'chair';
+
+            // ตรวจสอบความถูกต้องของข้อมูล
+            if (isNaN(damage) || damage <= 0) {
+                alert('กรุณากรอกจำนวนเงินความเสียหายให้ถูกต้อง');
+                return;
+            }
+            if (isNaN(memberCount) || memberCount < 1) {
+                alert('จำนวนบุคคลต้องมีอย่างน้อย 1 คน');
+                return;
+            }
+
+            // คำนวณความรับผิดรวมของชุดนี้ (เช่น 30% ของความเสียหาย)
+            const groupLiabilityTotal = damage * groupShare;
+
+            let yourShare = 0;
+
+            // กรณีมีคนเดียว รับผิดชอบเต็ม 100% ของกลุ่มนั้นทันที ไม่ว่าจะเป็นหัวหน้าหรือไม่
+            if (memberCount === 1) {
+                yourShare = groupLiabilityTotal;
+            } else {
+                // กำหนดน้ำหนัก (ประธาน/หัวหน้า = 1.5 ส่วน, กรรมการ/ผู้ร่วม = 1.0 ส่วน)
+                const chairWeight = 1.5;
+                const memberWeight = 1.0;
+                
+                // คำนวณส่วนแบ่งทั้งหมด (หัวหน้า 1 คน + ผู้ร่วมงานที่เหลือ)
+                const totalWeights = chairWeight + (memberWeight * (memberCount - 1));
+
+                // คำนวณความรับผิดของผู้ใช้งาน
+                if (isChair) {
+                    yourShare = (chairWeight / totalWeights) * groupLiabilityTotal;
+                } else {
+                    yourShare = (memberWeight / totalWeights) * groupLiabilityTotal;
+                }
+            }
+
+            // แสดงผล
+            const formatter = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
+            
+            document.getElementById('resTotalDamage').textContent = formatter.format(damage);
+            document.getElementById('resCommitteeTotal').textContent = formatter.format(groupLiabilityTotal);
+            document.getElementById('resYourLiability').textContent = formatter.format(yourShare);
+            
+            document.getElementById('resultBox').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
